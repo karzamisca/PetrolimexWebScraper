@@ -3,6 +3,9 @@ const pricesHistory = {
     zone2: {}
 };
 
+// Remove the limit on data points to store full history
+const maxPoints = Infinity;  // No limit on data points
+
 // Load prices history from localStorage if available
 function loadPricesHistory() {
     const storedHistory = localStorage.getItem('pricesHistory');
@@ -24,7 +27,7 @@ async function fetchPrices() {
         const result = await response.json();
         const data = result.data;
         const tableBody = document.querySelector('#pricesTable tbody');
-        const now = new Date().toLocaleString();  // Get current time for the graph with both date and time
+        const now = new Date().toLocaleString();  // Get current date and time for the graph
 
         tableBody.innerHTML = ''; // Clear existing rows
 
@@ -50,7 +53,7 @@ async function fetchPrices() {
                 pricesHistory.zone2[priceType] = [];
             }
 
-            // Add the new prices with the current time
+            // Add the new prices with the current date and time
             pricesHistory.zone1[priceType].push({ time: now, price: zone1Price });
             pricesHistory.zone2[priceType].push({ time: now, price: zone2Price });
         });
@@ -62,12 +65,12 @@ async function fetchPrices() {
     }
 }
 
-// Chart.js configuration
+// Chart.js configuration with zoom and pan enabled
 const ctx = document.getElementById('fuelPriceChart').getContext('2d');
 const chartConfig = {
     type: 'line',
     data: {
-        labels: [], // Time labels will go here
+        labels: [], // Time labels (Date + Time) will go here
         datasets: []
     },
     options: {
@@ -78,14 +81,18 @@ const chartConfig = {
                 text: 'Fuel Prices Over Time (Zone 1 and Zone 2)'
             },
             zoom: {
+                zoom: {
+                    wheel: {
+                        enabled: true, // Enable zooming with the mouse wheel
+                    },
+                    pinch: {
+                        enabled: true, // Enable zooming on touch screens
+                    },
+                    mode: 'x',  // Only allow zooming in the x (time) direction
+                },
                 pan: {
                     enabled: true,
-                    mode: 'x'  // Only allow horizontal panning
-                },
-                zoom: {
-                    enabled: true,
-                    mode: 'x',  // Only allow horizontal zooming
-                    drag: true
+                    mode: 'x',  // Only allow panning in the x (time) direction
                 }
             }
         },
@@ -93,11 +100,7 @@ const chartConfig = {
             x: {
                 title: {
                     display: true,
-                    text: 'Time'
-                },
-                ticks: {
-                    maxRotation: 90,
-                    minRotation: 45
+                    text: 'Date and Time'
                 }
             },
             y: {
@@ -114,7 +117,7 @@ const fuelPriceChart = new Chart(ctx, chartConfig);
 
 function updateChart() {
     const labels = Object.values(pricesHistory.zone1)[0]?.map(point => point.time) || [];
-    fuelPriceChart.data.labels = labels; // Update time labels
+    fuelPriceChart.data.labels = labels; // Update time labels with date and time
 
     // Combine Zone 1 and Zone 2 datasets for each fuel type
     fuelPriceChart.data.datasets = [];
